@@ -6,39 +6,39 @@ import querystring from 'query-string'
 import crypto from 'crypto'
 
 const name = 'General.validateSSO'
-export const validateSSO = new ValidatedMethod({
-  name,
-  mixins: [],
-  validate: null,
-  run (data) {
-    const {
-      sso: payload,
-      sig
-    } = data
+// export const validateSSO = new ValidatedMethod({
+//   name,
+//   mixins: [],
+//   validate: null,
+//   run (data) {
+//     const {
+//       sso: payload,
+//       sig
+//     } = data
 
-    const { discourse_sso_key } = Meteor.settings.private
+//     const { discourse_sso_key } = Meteor.settings.private
 
-    if (!discourse_sso_key) {
-      throw Error('No Discourse key found in settings')
-    }
+//     if (!discourse_sso_key) {
+//       throw Error('No Discourse key found in settings')
+//     }
 
-    const sso = new DiscourseSSO(discourse_sso_key)
+//     const sso = new DiscourseSSO(discourse_sso_key)
 
-    if (sso.validate(payload, sig)) {
-      const user = Meteor.user()
-      const email = findMail(user)
+//     if (sso.validate(payload, sig)) {
+//       const user = Meteor.user()
+//       const email = findMail(user)
 
-      return sso.buildLoginString({
-        nonce: sso.getNonce(payload),
-        'external_id': user._id,
-        'email': email.address,
-        'require_activation': !email.verified
-      })
-    }
+//       return sso.buildLoginString({
+//         nonce: sso.getNonce(payload),
+//         'external_id': user._id,
+//         'email': email.address,
+//         'require_activation': !email.verified
+//       })
+//     }
 
-    throw new Meteor.Error('General.validateSSO', 'Could not process this request')
-  }
-})
+//     throw new Meteor.Error('General.validateSSO', 'Could not process this request')
+//   }
+// })
 
 export function findMail (user) {
   if (user.emails) {

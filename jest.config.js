@@ -10,5 +10,6 @@ module.exports = {
   roots: [
     '<rootDir>/imports',
     '<rootDir>/server'
-  ]
+  ],
+  testURL: 'http://localhost/'
 }
