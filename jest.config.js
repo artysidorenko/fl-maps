@@ -1,5 +1,8 @@
 module.exports = {
-  setupFiles: ['<rootDir>/tests/unit-tests/testsSetup.js'],
+  setupFiles: [
+    '<rootDir>/tests/unit-tests/testsSetup.js',
+    'jest-localstorage-mock'
+  ],
   moduleNameMapper: {
     '^meteor/(.*)': '<rootDir>/tests/unit-tests/meteorMocks/$1',
     '^/imports/(.*)': '<rootDir>/imports/$1',

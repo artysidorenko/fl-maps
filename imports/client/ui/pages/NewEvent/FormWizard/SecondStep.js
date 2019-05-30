@@ -62,18 +62,6 @@ class SecondStep extends Component {
               </Col>
             </Row>
           </div>
-          {/*
-          <div>
-            <Row>
-              <Col>
-                {!multipleDays && <AutoField name='when.startingTime' />}
-              </Col>
-              <Col>
-                {!multipleDays && <AutoField name='when.endingTime' />}
-              </Col>
-            </Row>
-          </div>
-          */}
         </div>
 
         {/* Weekdays  */}

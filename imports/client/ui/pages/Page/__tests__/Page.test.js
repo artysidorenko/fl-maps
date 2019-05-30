@@ -5,11 +5,10 @@ import { Meteor } from 'meteor/meteor'
 import { Col } from 'reactstrap'
 import HoursFormatted from '/imports/client/ui/components/HoursFormatted'
 import * as DOMInteractions from '/imports/client/utils/DOMInteractions'
-import * as PageComponent from '../index'
-import AttendingButton from '../AttendingButton'
+import { Page } from '../index'
 
-const { Page } = PageComponent
 describe('Page', () => {
+
   const fakeData = {
     address: {
       name: 'Location Test'
@@ -68,24 +67,11 @@ describe('Page', () => {
     expect(leftCol.find('.description')).toHaveLength(1)
   })
 
-  test('right colum should render datetime, location and an "attend" button', () => {
+  test('right colum should render datetime and location', () => {
     const rightCol = wrapper.find('.body').find('.right')
 
     expect(rightCol.find(HoursFormatted)).toHaveLength(1)
     expect(rightCol.find('.location')).toHaveLength(1)
-    expect(rightCol.find(AttendingButton)).toHaveLength(1)
-  })
-
-  test('AttendingButton props', () => {
-    const instance = wrapper.instance()
-    const btn = wrapper.find(AttendingButton)
-
-    expect(btn.props()).toEqual({
-      _id: '#testId',
-      isLoggedIn: false,
-      user: instance.props.user,
-      history: instance.props.history
-    })
   })
 
   test('clicking on "view map" should call scroll to map function', () => {

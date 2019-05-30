@@ -1,5 +1,5 @@
 import React from 'react'
-import { shallow } from 'enzyme'
+import { shallow, mount } from 'enzyme'
 import sinon from 'sinon'
 import MinimizeButton from '../EventsList/MinimizeButton'
 import { Button } from 'reactstrap'
@@ -11,19 +11,28 @@ describe('<MinimizeButton />', () => {
         {...props}
       />
     )
+  
+  const fullRender = (props) =>
+    mount(
+      <MinimizeButton
+        {...props}
+      />
+    )
 
-  const component = shallowRender({ toggleFilters: () => {} })
+  const component = shallowRender()
 
   it('should render a button with id "minimize"', () => {
     expect(component.find(Button)).toHaveLength(1)
     expect(component.props().id).toEqual('minimize')
   })
 
-  it('should get an onMinimize prop to be called upon click event', () => {
-    const spy = sinon.spy()
-    const component_ = shallowRender({ onMinimize: spy })
+  it('should render with initial state with minimized = false', () => {
+    expect(component.state()).toEqual({ minimized: false })
+  })
 
+  it('should change state to minimized = true on button click', () => {
+    const component_ = fullRender()
     component_.simulate('click')
-    expect(spy.calledOnce).toBe(true)
+    expect(component_.state()).toEqual({ minimized: true })
   })
 })

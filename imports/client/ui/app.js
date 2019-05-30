@@ -58,77 +58,80 @@ class App extends Component {
 
     // Hide the ghost when transition is over
     const dcsGhost = document.getElementById("dcs-ghost");
-    dcsGhost.addEventListener("transitionend", () => {
+    if (dcsGhost) dcsGhost.addEventListener("transitionend", () => {
       this.setState({ leftRightTransition: false });
     });
 
     // Connect to the plugin in Discourse
-    dcs
-      .connect({
-        discourseWindow: document.getElementById("dcs-right").contentWindow,
-        discourseOrigin: new URL(discourseUrl).origin,
-        timeout: 15000
-      })
-      .catch(err => {
-        // Timeout error
-        console.log(err);
-      });
+    const dcsRight = document.getElementById("dcs-right")
+    if (dcsRight) {
+      dcs
+        .connect({
+          discourseWindow: dcsRight.contentWindow,
+          discourseOrigin: new URL(discourseUrl).origin,
+          timeout: 15000
+        })
+        .catch(err => {
+          // Timeout error
+          console.log(err);
+        });
 
-    // Set up callbacks to handle Discourse route changes (when the user
-    // clicks on something (ex: his profile) in Discourse)
-    dcs.onHome(() => {
-      this.triggeredByDiscourse = true;
-      changeHistory({
-        params: { r: "1", b: null, t: null, d: null },
-        push: false
-      });
-    });
-    dcs.onPath(path => {
-      this.triggeredByDiscourse = true;
-      changeHistory({
-        params: { r: undefined, b: null, t: null, d: path },
-        push: false
-      });
-    });
-    dcs.onTagOrTopic((tag, topicId) => {
-      if (tag.includes('whitepaper')) {
+      // Set up callbacks to handle Discourse route changes (when the user
+      // clicks on something (ex: his profile) in Discourse)
+      dcs.onHome(() => {
+        this.triggeredByDiscourse = true;
         changeHistory({
-          pathname: "/whitepaper",
-          params: { r: "1", b: tag.substring(17), t: topicId || null },
+          params: { r: "1", b: null, t: null, d: null },
           push: false
         });
-      } else {
-        Meteor.call("Events.getEventId", { discourseTag: tag }, (err, res) => {
-          if (err) {
-            console.log("Events.getEventId Error:", err);
-          } else {
-            this.triggeredByDiscourse = true;
-            changeHistory({
-              pathname: "/page/" + res,
-              params: { r: "1", b: tag.substring(17), t: topicId || null },
-              push: false
-            });
-          }
+      });
+      dcs.onPath(path => {
+        this.triggeredByDiscourse = true;
+        changeHistory({
+          params: { r: undefined, b: null, t: null, d: path },
+          push: false
         });
-      }
-    });
+      });
+      dcs.onTagOrTopic((tag, topicId) => {
+        if (tag.includes('whitepaper')) {
+          changeHistory({
+            pathname: "/whitepaper",
+            params: { r: "1", b: tag.substring(17), t: topicId || null },
+            push: false
+          });
+        } else {
+          Meteor.call("Events.getEventId", { discourseTag: tag }, (err, res) => {
+            if (err) {
+              console.log("Events.getEventId Error:", err);
+            } else {
+              this.triggeredByDiscourse = true;
+              changeHistory({
+                pathname: "/page/" + res,
+                params: { r: "1", b: tag.substring(17), t: topicId || null },
+                push: false
+              });
+            }
+          });
+        }
+      });
 
-    // Setup callbacks to handle other Discourse events
-    dcs.onUserChange(user => {
-      //user && console.log('Unread notifications: ', user.unreadNotifications)
-    });
-    dcs.onDcsTags(dcsTags => {
-      this.setState({ dcsTags });
-    });
+      // Setup callbacks to handle other Discourse events
+      dcs.onUserChange(user => {
+        //user && console.log('Unread notifications: ', user.unreadNotifications)
+      });
+      dcs.onDcsTags(dcsTags => {
+        this.setState({ dcsTags });
+      });
 
-    // Update the Discourse route. DON'T DO THIS IMMEDIATELY, otherwise
-    // transitions won't trigger between the two states
-    setTimeout(() => {
-      this.dcsUpdateFromUrl();
-    }, 0);
-    history.listen(() => {
-      this.dcsUpdateFromUrl();
-    });
+      // Update the Discourse route. DON'T DO THIS IMMEDIATELY, otherwise
+      // transitions won't trigger between the two states
+      setTimeout(() => {
+        this.dcsUpdateFromUrl();
+      }, 0);
+      history.listen(() => {
+        this.dcsUpdateFromUrl();
+      });
+    }
   }
 
   dcsUpdateFromUrl() {

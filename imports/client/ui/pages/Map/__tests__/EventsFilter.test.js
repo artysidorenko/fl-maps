@@ -3,8 +3,13 @@ import { shallow } from 'enzyme'
 import sinon from 'sinon'
 import EventsFilter from '../EventsFilter'
 import { ListGroup, ListGroupItem, CustomInput } from 'reactstrap'
-import categories from '/imports/both/i18n/en/categories.json'
+import categoryTree from '/imports/both/i18n/en/categories.json'
 import i18n from '/imports/both/i18n/en'
+
+// squash parents and children into 1 array of all possible categories
+let categories = categoryTree.reduce((tot, elem) => {
+  return tot.concat([elem.name].concat(elem.categories))
+}, [])
 
 describe('<EventsFilter />', () => {
   const shallowRender = (props) =>
@@ -35,7 +40,7 @@ describe('<EventsFilter />', () => {
     expect(component.find('#filters-list').find(ListGroup)).toHaveLength(1)
   })
 
-  it('should the first <ListGroupItem /> as a title', () => {
+  it('should display the first <ListGroupItem /> as a title', () => {
     expect(component.find(ListGroupItem).at(0).props().className).toEqual('title')
   })
 
@@ -55,31 +60,35 @@ describe('<EventsFilter />', () => {
     expect(spy.calledOnce).toBe(true)
   })
 
-  it('should check all categories by default', () => {
-    expect(component.state().checkedFilters).toEqual(Array(categories.length).fill(true))
+  it('should leave all categories unchecked by default', () => {
+    const checkedFilters = component.state().checkedFilters
+    expect(checkedFilters.every(elem => elem.checked === false)).toEqual(true)
   })
 
-  it('clicking on checkbox toggleAllFilters should toggle all filters', () => {
+  it('should toggle all filters to on upon ticking the first checkbox toggleAllFilters', () => {
     const component_ = shallowRender()
-
-    expect(component_.find(CustomInput).at(0).props().id).toEqual('toggle-all')
-    component_.find(CustomInput).at(0).simulate('change')
-    expect(component_.state().checkedFilters).toEqual(Array(categories.length).fill(false))
+    const checkedFilters = component.state().checkedFilters
+    const button = component_.find(CustomInput).first()
+    button.simulate('change')
+    expect(button.props().id).toEqual('toggle-all')
+    expect(checkedFilters.every(elem => elem.checked === true)).toEqual(true)
   })
 
   it('should render a <ListGroupItem /> for each category', () => {
     const component_ = shallowRender()
-
-    expect(component_.find('.categories-items').find(ListGroupItem)).toHaveLength(categories.length)
+    const categoryItems = component_.find('.categories-items')
+    expect(categoryItems.find(ListGroupItem)).toHaveLength(categories.length)
   })
 
-  it('clicking on an item checkbox should toggle it and remove it from filters array', () => {
+  it('should toggle a category filter state to true when its box is ticked', () => {
     const component_ = shallowRender()
-
-    const checkbox = component_.find('.categories-items').find(ListGroupItem).at(0).find(CustomInput)
-
-    expect(component_.state().checkedFilters[0]).toEqual(true)
+    const checkedFilters = component.state().checkedFilters
+    const checkbox = component_.find(CustomInput).last()
+    expect(checkedFilters[checkedFilters.length-1].checked).toEqual(false)
+    
     checkbox.simulate('change', { target: { id: checkbox.props().id } })
-    expect(component_.state().checkedFilters[0]).toEqual(false)
+    expect(checkedFilters[checkedFilters.length - 1].checked).toEqual(true)
+
   })
+
 })

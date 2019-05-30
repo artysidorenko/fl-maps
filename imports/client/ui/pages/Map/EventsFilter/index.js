@@ -25,7 +25,6 @@ class FiltersList extends Component {
       elem.checked = false; // all unchecked by default
       return elem
     })
-    // checkedFilters: Array(possibleCategories.length).fill(true) // all checked by default
   }
 
   render () {

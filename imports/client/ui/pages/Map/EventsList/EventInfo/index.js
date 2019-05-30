@@ -10,7 +10,7 @@ import * as formatUtils from '/imports/client/utils/format'
 import * as Gravatar from '/imports/client/utils/Gravatar'
 import './styles.scss'
 
-class EventInfo extends Component {
+export class EventInfo extends Component {
 
   render () {
     const {

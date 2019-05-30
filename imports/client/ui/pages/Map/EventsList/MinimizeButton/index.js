@@ -12,7 +12,8 @@ export default class MinimizeButton extends React.Component {
 
   toggleMinimize = () => {
     this.setState({ minimized: !this.state.minimized })
-    document.body.querySelector('#map-container').classList.toggle('minimized')
+    const container = document.body.querySelector('#map-container')
+    if (container) container.classList.toggle('minimized')
   }
 
   render() {

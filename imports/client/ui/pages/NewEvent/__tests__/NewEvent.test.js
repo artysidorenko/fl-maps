@@ -19,7 +19,9 @@ describe('<NewEventModal />', () => {
       />
     )
 
-  const wrapper = shallowRenderer()
+  const formMock = {
+    getModel: jest.fn()
+  }  
 
   test('toggleModal should delete "new" and "edit" params from query', () => {
     const spy = sinon.spy()
@@ -28,6 +30,7 @@ describe('<NewEventModal />', () => {
       location: { pathname: '/', search: '?new=1&edit=1' }
     })
 
+    wrapper_.instance().setState({ form: formMock })
     wrapper_.instance().toggleModal()
 
     expect(spy.calledOnce).toBe(true)

@@ -6,7 +6,7 @@ import AttendingButton from '../AttendingButton'
 describe('<AttendingButton />', () => {
   const shallowRenerer = (props) => shallow(
     <AttendingButton
-      _id='test id'
+      _id='test'
       history={{
         push: jest.fn()
       }}
@@ -16,14 +16,17 @@ describe('<AttendingButton />', () => {
     />
   )
 
-  test('redirectToLogin', () => {
+  it('should redirect to login when user is not logged in', () => {
     const wrapper_ = shallowRenerer()
-    const spy = sinon.spy(window.sessionStorage, 'setItem')
-    const spy2 = sinon.spy(wrapper_.instance().props.history, 'push')
+    const spy = sinon.spy(wrapper_.instance().props.history, 'push')
 
+    console.log(sessionStorage)
     wrapper_.instance().redirectToLogin()
 
-    expect(spy.args[0][0]).toEqual('redirect', 'test id')
-    expect(spy2.args[0][0]).toEqual('/sign-in')
+    console.log(spy.args)
+    console.log(sessionStorage)
+    expect(sessionStorage.setItem).toHaveBeenLastCalledWith('redirect', '/page/test');
+    expect(sessionStorage.__STORE__['redirect']).toBe('/page/test');
+    expect(spy.args[0][0]).toEqual('/sign-in')
   })
 })

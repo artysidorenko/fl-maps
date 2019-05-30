@@ -92,3 +92,22 @@ export const videoHosts = [
   { host: 'DailyMotion', prefix: 'https://www.dailymotion.com/video/' },
   { host: 'Direct Link - mp4/ogv/webm/m3u8/mpd', prefix: '' }
 ]
+
+
+export function calcEffectiveEndDate (endingDate, type, skip, occurences) {
+  const initialEndDate = endingDate
+    ? Date.parse(endingDate) : Date.parse(getDate(3))
+  let millisecondsPerPeriod = 24 * 60 * 60000
+  // check type of recurrence,
+  // and that a number of repetitions has been set (rather than an "until" date)
+  if (type === 'day' && occurences >= 1) {
+    return new Date(initialEndDate + (skip * occurences * millisecondsPerPeriod))
+  }
+  else if (type === 'week' && occurences >= 1) {
+    return new Date(initialEndDate + (skip * occurences * millisecondsPerPeriod * 7))
+  }
+  else if (type === 'month' && occurences >= 1) {
+    return new Date(initialEndDate + (skip * occurences * millisecondsPerPeriod * 365.25 / 12))
+  }
+  else return null
+}

@@ -32,7 +32,9 @@ describe('<MapWrapper_ />', () => {
       events: [],
       filteredEvents: null,
       isFetching: true,
+      mapRadius: null,
       showFilters: false,
+      showPastEvents: false,
       userLocation: null,
       zoom: 3
     })

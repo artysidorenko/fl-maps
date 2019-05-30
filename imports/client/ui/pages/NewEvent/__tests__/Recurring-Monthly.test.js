@@ -31,7 +31,7 @@ describe('<Monthly />', () => {
     expect(select.props().options).toEqual(expectedOptions)
   })
 
-  test('changing the select input value should update the form with the right value', () => {
+  it('changing the select input value should update the form with the right value', () => {
     const spy = sinon.spy()
     const wrapper_ = shallow(
       <Monthly
@@ -40,20 +40,17 @@ describe('<Monthly />', () => {
       />
     )
 
+    // TODO: why is input value sometimes a string and sometimes an int?
     wrapper_.find(Select).simulate('change', expectedOptions[0])
-    expect(spy.calledWith(
-      'when.recurring.monthly',
-      { type: 'byDayInMonth', value: '12' }
-    ))
+    sinon.assert.calledOnce(spy)
+    sinon.assert.calledWith(spy, 'when.recurring.monthly', { type: 'byDayInMonth', value: 12 })
 
     wrapper_.find(Select).simulate('change', expectedOptions[1])
-    expect(spy.calledWith(
-      'when.recurring.monthly',
-      { type: 'byPosition', value: '4' })
-    ).toBe(true)
+    sinon.assert.calledTwice(spy)
+    sinon.assert.calledWith(spy.secondCall, 'when.recurring.monthly', { type: 'byPosition', value: "2" })
   })
 
-  test('getOptionsFromDate method', () => {
+  it('has an instance method getOptionsFromDate that presents correct options from date given', () => {
     const f = wrapper.instance().getOptionsFromDate
 
     expect(f(new Date('08/10/2018'))).toEqual([
@@ -66,4 +63,5 @@ describe('<Monthly />', () => {
       { value: 'byPosition', label: 'Monthly on the 4th Monday' }
     ])
   })
+
 })

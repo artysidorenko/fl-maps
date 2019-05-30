@@ -2,138 +2,356 @@ import React from 'react'
 import { shallow } from 'enzyme'
 import HoursFormatted from '../HoursFormatted'
 import { formatDateWithWords } from '/imports/client/utils/format'
+import { calcEffectiveEndDate } from '/imports/both/collections/events/helpers'
+import { eventHoursData } from '/tests/unit-tests/helpers/eventHoursData'
+
+// TODO: separately create a test for the drillDownToDateText function in the sharepanel
+// TODO: write up documentation for this test, with main gotchas
+
+let data, startingDate, endingDate, endingDate10Years, untilDate
 
 describe('<HoursFormatted />', () => {
-  const constantDate = new Date('2018-01-01T12:00:00')
 
   beforeAll(() => {
+
+    // some of the dates used in the tests
+    // defining these here because we are about to overwrite the global Date constructor
+    startingDate = new Date('2019-01-01T12:00:00')
+    endingDate = new Date('2019-01-10T12:00:00')
+    endingDate10Years = new Date('2029-01-10T12:00:00')
+    untilDate = new Date('2019-10-10T12:00:00')
+
+    // eventHoursData mocks the event data object that the component normally receives from the database
+    // (this is so that all the required fields are initialised otherwise the component throws an error)
+    data = new eventHoursData({
+      startingDate: startingDate,     // <-- day of week = Tuesday
+      endingDate: endingDate,         // <-- Thursday
+      startingTime: '16:00',
+      endingTime: '17:00'
+    })
+
+    /**
+     * For the purposes of these tests we need a fake date object
+     * to keep value of new Date() and Date.now() as constant
+     * ONLY if no argument is passed (so that Date(2019-01-01) is not overwritten)
+     */
+    const fakeDate = new Date('2019-05-01T12:00:00')
+    global.DateWithArgs = Date
     global.Date = class extends Date {
-      constructor () {
-        super()
-        return constantDate
+      constructor(...args) {
+        super(...args)
+        if (args[0] === undefined) return fakeDate
+        else return new DateWithArgs(...args)
       }
     }
   })
-
   afterAll(() => {
     global.Date = Date
   })
 
-  const obj = {
-    startingDate: new Date(),
-    endingDate: new Date(),
-    startingTime: '16:00',
-    endingTime: '17:00',
-    multipleDays: false,
-    days: [{
-      day: 'Sunday',
-      startingTime: '15:00',
-      endingTime: '20:00'
-    }]
-  }
-
-  const shallowRender = (props) =>
-    shallow(
-      <HoursFormatted
-        data={obj}
-        {...props}
-      />
-    )
-
-  test('if multipleDays', () => {
-    const wrapper_ = shallowRender({ data: { ...obj, multipleDays: true } })
-    const component = wrapper_.find('.multiple-days')
-    const dateText = `${formatDateWithWords(obj.startingDate)} - ${formatDateWithWords(obj.endingDate)}`
-
-    expect(component.exists()).toBe(true)
-    expect(component.find('.date').text()).toEqual(dateText)
-    expect(component.find('.day').children().at(0).text()).toEqual(obj.days[0].day.substr(0, 3))
-    expect(component.find('.day').children().at(1).text()).toEqual(`${obj.days[0].startingTime} - ${obj.days[0].endingTime}`)
+  it('should render a wrapper class', () => {
+    const wrapper = shallow(<HoursFormatted data={data} />)
+    expect(wrapper.exists()).toBe(true)
   })
 
-  test('repeat=true, type="day", forever=true', () => {
-    const wrapper_ = shallowRender({
-      data: {
-        ...obj,
-        repeat: true,
-        recurring: {
-          every: 5,
-          type: 'day',
-          forever: true
-        }
-      }
-    })
-    const component = wrapper_.find('.repeat')
+  describe('without a repetition flag', () => {
+    
+    beforeAll(() => {data.repeat = false})
 
-    expect(component.text()).toEqual('Every 5 days, between 16:00 - 17:00 ')
-  })
-
-  test('repeat=true, type="day", forever=false', () => {
-    const wrapper_ = shallowRender({
-      data: {
-        ...obj,
-        repeat: true,
-        recurring: {
-          every: 10,
-          type: 'day',
-          forever: false,
-          repeat: 8,
-          until: new Date('02/11/2019')
-        }
-      }
+    it('renders component with class "regular-date"', () => {
+      const wrapper = shallow(<HoursFormatted data={data} />)
+      const component = wrapper.find('.regular-date')
+      expect(component.exists()).toBe(true)
     })
 
-    const component = wrapper_.find('.repeat')
+    it('displays correct starting date', () => {
+      const wrapper = shallow(<HoursFormatted data={data} />)
+      const component = wrapper.find('.regular-date')
+      expect(component.text()).toMatch(/Tue/)
+      expect(component.text()).toMatch(/2019\/01\/01/)
+      expect(component.text()).toMatch(/16:00/)
+    })
 
-    expect(component.props().className).toEqual('hours-formatted repeat')
-    expect(component.find('.not-forever')).toHaveLength(1)
-    expect(component.text()).toEqual('Every 10 days, between 16:00 - 17:00 Available for 8 occurences or until 2018/01/01')
+    it('displays correct ending date', () => {
+      const wrapper = shallow(<HoursFormatted data={data} />)
+      const component = wrapper.find('.regular-date')
+      expect(component.text()).toMatch(/Thu/)
+      expect(component.text()).toMatch(/2019\/01\/10/)
+      expect(component.text()).toMatch(/17:00/)
+    })
+
+    it('displays events lasting 5+ years as ongoing "until further notice"', () => {
+      data.endingDate = endingDate10Years
+      const wrapper = shallow(<HoursFormatted data={data} />)
+      const component = wrapper.find('.regular-date')
+      expect(component.text()).toMatch(/until further notice/)
+    })
   })
 
-  test('repeat=true, type="week", forever=true', () => {
-    const wrapper_ = shallowRender({
-      data: {
-        ...obj,
-        repeat: true,
-        recurring: {
-          days: ['Sunday', 'Monday', 'Tuesday', 'Friday'],
-          every: 10,
+  describe('with repetition via "multiple days" flag', () => {
+
+    beforeAll(() => {
+      data.multipleDays = true
+      data.days = [
+        {
+          day: 'Sunday',
+          startingTime: '15:00',
+          endingTime: '20:00'
+        },
+        {
+          day: 'Friday',
+          startingTime: '19:00',
+          endingTime: '20:00'
+        }
+      ]
+    })
+
+    it('renders component with class "multiple-days"', () => {
+      const wrapper = shallow(<HoursFormatted data={data} />)
+      const component = wrapper.find('.multiple-days')
+      expect(component.exists()).toBe(true)
+    })
+
+    it('displays both days correctly', () => {
+      const wrapper = shallow(<HoursFormatted data={data} />)
+      const component = wrapper.find('.multiple-days')
+      expect(component.html()).toMatch(new RegExp('<div>Sun</div><span>15:00 - 20:00</span>'))
+      expect(component.html()).toMatch(new RegExp('<div>Fri</div><span>19:00 - 20:00</span>'))
+    })
+  })
+
+  describe('with daily recurrence', () => {
+
+    describe('repeating daily forever', () => {
+
+      beforeAll(() => {
+        data.endingDate = startingDate
+        data.multipleDays = false
+        data.repeat = true
+        data.recurring = {
+          type: 'day',
           forever: true,
-          type: 'week'
+          every: 1
         }
-      }
+      })
+
+      it('renders component with class "repeat"', () => {
+        const wrapper = shallow(<HoursFormatted data={data} />)
+        const component = wrapper.find('.repeat')
+        expect(component.exists()).toBe(true)
+      })
+
+      it('correctly displays the next occurence after today (today = Wed 2019/05/01)', () => {
+        const wrapper = shallow(<HoursFormatted data={data} />)
+        const component = wrapper.find('.repeat')
+        expect(component.html()).toMatch(new RegExp(
+          '<span>Next:<br/>Wed, 2019/05/01<br/>'
+        ))
+      })
+
+      it('correctly displays the repetition schedule', () => {
+        const wrapper = shallow(<HoursFormatted data={data} />)
+        const component = wrapper.find('.repeat')
+        expect(component.html()).toMatch(new RegExp('Repeating:'))
+        expect(component.html()).toMatch(new RegExp('every  day, between'))
+        expect(component.html()).toMatch(new RegExp(
+          '<li><span>Repeating:<br/></span> every  day, between 16:00 - 17:00 </li>'
+        ))
+      })
+
     })
 
-    const component = wrapper_.find('.repeat')
+    describe('repeating every 3 days until Thu Oct 10', () => {
 
-    expect(component.find('.every-sentence')).toHaveLength(1)
-    expect(component.text()).toEqual('Every 10 weeks onSun16:00 - 17:00Mon16:00 - 17:00Tue16:00 - 17:00Fri16:00 - 17:00')
-  })
-
-  test('repeat=true, type="week", forever=false', () => {
-    const wrapper_ = shallowRender({
-      data: {
-        ...obj,
-        repeat: true,
-        recurring: {
-          days: ['Sunday', 'Monday', 'Tuesday', 'Friday'],
-          every: 10,
+      beforeAll(() => {
+        data.endingDate = startingDate
+        data.multipleDays = false
+        data.repeat = true
+        data.recurring = {
+          type: 'day',
           forever: false,
-          type: 'week',
-          repeat: 8
+          every: 3,
+          until: untilDate
         }
-      }
+      })
+
+      it('renders component with class "repeat"', () => {
+        const wrapper = shallow(<HoursFormatted data={data} />)
+        const component = wrapper.find('.repeat')
+        expect(component.exists()).toBe(true)
+      })
+      
+      it('correctly displays the next occurence (every 3 days from 1st Jan lands on 1st May coincidentally)', () => {
+        const wrapper = shallow(<HoursFormatted data={data} />)
+        const component = wrapper.find('.repeat')
+        expect(component.html()).toMatch(new RegExp(
+          '<span>Next:<br/>Wed, 2019/05/01<br/>'
+        ))
+      })
+      
+      it('correctly displays the repetition schedule', () => {
+        const wrapper = shallow(<HoursFormatted data={data} />)
+        const component = wrapper.find('.repeat')
+        const subcomponent = wrapper.find('.not-forever')
+        expect(component.html()).toMatch(new RegExp('Repeating:'))
+        expect(component.html()).toMatch(new RegExp('every 3 days, between'))
+        expect(component.html()).toMatch(new RegExp(
+          '<li><span>Repeating:<br/></span> every 3 days, between 16:00 - 17:00 </li>'
+        ))
+        expect(subcomponent.html()).toMatch(new RegExp('until Thu, 2019/10/10'))
+      })
+      
     })
 
-    const component = wrapper_.find('.repeat')
 
-    expect(component.find('.every-sentence')).toHaveLength(1)
-    expect(component.text()).toEqual('Every 10 weeks onSun16:00 - 17:00Mon16:00 - 17:00Tue16:00 - 17:00Fri16:00 - 17:00Available for 8 occurences')
   })
 
-  test('if regular date', () => {
-    const wrapper_ = shallowRender()
-    const component = wrapper_.find('.regular-date')
-    expect(component.text().substr(5)).toEqual('2018/01/01, 16:00 - 17:00')
+  describe('with weekly recurrence', () => {
+
+    describe('repeating every 2 weeks on Tuesdays for 26 recurrences', () => {
+
+      beforeAll(() => {
+        data.endingDate = startingDate
+        data.multipleDays = false
+        data.repeat = true
+        data.recurring = {
+          type: 'week',
+          forever: false,
+          every: 2,
+          days: ['Tuesday'],
+          occurences: 26,
+          recurrenceEndDate: calcEffectiveEndDate(startingDate, 'week', 2, 26)
+        }
+      })
+
+      it('renders component with class "repeat"', () => {
+        const wrapper = shallow(<HoursFormatted data={data} />)
+        const component = wrapper.find('.repeat')
+        expect(component.exists()).toBe(true)
+      })
+
+      it('correctly displays the next occurence after today (should land on 7th May)', () => {
+        const wrapper = shallow(<HoursFormatted data={data} />)
+        const component = wrapper.find('.repeat')
+        expect(component.html()).toMatch(new RegExp(
+          '<span>Next:<br/>Tue, 2019/05/07<br/>'
+        ))
+      })
+
+      it('correctly displays the repetition schedule', () => {
+        const wrapper = shallow(<HoursFormatted data={data} />)
+        const component = wrapper.find('.repeat')
+        expect(component.html()).toMatch(new RegExp('Repeating:'))
+        expect(component.html()).toMatch(new RegExp('every 2 weeks'))
+        expect(component.html()).toMatch(new RegExp('on Tue, 16:00 - 17:00'))
+      })
+
+      it('correctly displays the final day (26 weeks X 2 = 1 Year) -> 31/12/19', () => {
+        const wrapper = shallow(<HoursFormatted data={data} />)
+        const component = wrapper.find('.not-forever')
+        expect(component.html()).toMatch(new RegExp('until Tue, 2019/12/31'))
+      })
+    })
   })
+
+  describe('with monthly recurrence', () => {
+
+    describe('repeating every month on the 4th week for 5 recurrences', () => {
+
+      beforeAll(() => {
+        data.endingDate = startingDate // <-- a Tuesday
+        data.multipleDays = false
+        data.repeat = true
+        data.recurring = {
+          type: 'month',
+          forever: false,
+          every: 1,
+          occurences: 5,
+          recurrenceEndDate: calcEffectiveEndDate(startingDate, 'month', 1, 5),
+          monthly: {
+            type: 'byPosition',
+            value: 4
+          }
+        }
+      })
+
+      it('renders component with class "repeat"', () => {
+        const wrapper = shallow(<HoursFormatted data={data} />)
+        const component = wrapper.find('.repeat')
+        expect(component.exists()).toBe(true)
+      })
+
+      it('correctly displays the next occurence after today (should land on Mon 27th May)', () => {
+        const wrapper = shallow(<HoursFormatted data={data} />)
+        const component = wrapper.find('.repeat')
+        expect(component.html()).toMatch(new RegExp(
+          '<span>Next:<br/>Tue, 2019/05/28<br/>'
+        ))
+      })
+
+      it('correctly displays the repetition schedule', () => {
+        const wrapper = shallow(<HoursFormatted data={data} />)
+        const component = wrapper.find('.repeat')
+        expect(component.html()).toMatch(new RegExp('Repeating:'))
+        expect(component.html()).toMatch(new RegExp('every  month'))
+        expect(component.html()).toMatch(new RegExp('on the 4th Tuesday'))
+      })
+
+      it('correctly displays the final day (5 months after Jan) ->24/06/19', () => {
+        const wrapper = shallow(<HoursFormatted data={data} />)
+        const component = wrapper.find('.not-forever')
+        expect(component.html()).toMatch(new RegExp('through June'))
+      })
+
+    })
+
+    describe('repeating every 3 months on the 17th for 4 recurrences', () => {
+
+      beforeAll(() => {
+        data.endingDate = startingDate // <-- a Tuesday
+        data.multipleDays = false
+        data.repeat = true
+        data.recurring = {
+          type: 'month',
+          forever: false,
+          every: 3,
+          occurences: 4,
+          recurrenceEndDate: calcEffectiveEndDate(startingDate, 'month', 3, 4),
+          monthly: {
+            type: 'byDayInMonth',
+            value: 17
+          }
+        }
+      })
+
+      it('renders component with class "repeat"', () => {
+        const wrapper = shallow(<HoursFormatted data={data} />)
+        const component = wrapper.find('.repeat')
+        expect(component.exists()).toBe(true)
+      })
+
+      it('correctly displays the next occurence after today (should land on Wed 17th Jul)', () => {
+        const wrapper = shallow(<HoursFormatted data={data} />)
+        const component = wrapper.find('.repeat')
+        expect(component.html()).toMatch(new RegExp(
+          '<span>Next:<br/>Wed, 2019/07/17<br/>'
+        ))
+      })
+
+      it('correctly displays the repetition schedule', () => {
+        const wrapper = shallow(<HoursFormatted data={data} />)
+        const component = wrapper.find('.repeat')
+        expect(component.html()).toMatch(new RegExp('Repeating:'))
+        expect(component.html()).toMatch(new RegExp('every 3 months'))
+        expect(component.html()).toMatch(new RegExp('on the 17th'))
+      })
+
+      it('correctly displays the final day (4 X 3 months after Jan)->17/01/20', () => {
+        const wrapper = shallow(<HoursFormatted data={data} />)
+        const component = wrapper.find('.not-forever')
+        expect(component.html()).toMatch(new RegExp('through Jan'))
+      })
+    })
+  })
+
 })

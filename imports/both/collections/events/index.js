@@ -1,7 +1,7 @@
 import { Meteor } from 'meteor/meteor'
 import { Mongo } from 'meteor/mongo'
 import SimpleSchema from 'simpl-schema'
-import { startingTime, endingTime, startingDate, endingDate, getHour, weekDays, getDate, videoHosts } from './helpers'
+import { startingTime, endingTime, startingDate, endingDate, getHour, weekDays, getDate, videoHosts, calcEffectiveEndDate, determinePosition } from './helpers'
 import categoryTree from '/imports/both/i18n/en/categories.json'
 import labels from '/imports/both/i18n/en/new-event-modal.json'
 import DaySchema from './DaysSchema'
@@ -167,7 +167,7 @@ const EventsSchema = new SimpleSchema({
     // meaning autoValue will never trigger correctly
     // Solution: omit defaultValue and pre-populate form client-side via React
     autoValue: function () {
-      const categories = this.field('categories').value
+      const categories = this.field('categories').value || []
       const specialCat = categories.some(e => {
         return e.name === 'Community Offer' || e.name === 'Meet me for Action!'
       })
@@ -326,9 +326,20 @@ const EventsSchema = new SimpleSchema({
   'when.recurring.monthly.value': {
     type: Number,
     autoValue: function () {
-      if (!this.value) {
-        return this.field('when.startingDate').value.getDate()
+      const type = this.field('when.recurring.monthly.type').value
+      const startingDate = this.field('when.startingDate').value
+      const monthDate = startingDate.getDate()
+      if (!this.value && type === 'byDayInMonth') {
+        return monthDate
       }
+      if (!this.value && type === 'byPosition') {
+        return Number(determinePosition(monthDate)[0])
+      }
+      if (this.value < 1) return 1
+      const maxDaysInMonth = new Date(startingDate.getFullYear(), startingDate.getMonth() + 1, 0).getDate()
+      if (this.value > maxDaysInMonth && type === 'byDayInMonth') return maxDaysInMonth
+      const maxWeeksInMonth = maxDaysInMonth / 7
+      if (this.value > maxWeeksInMonth && type === 'byPosition') return maxWeeksInMonth
     }
   },
   'when.recurring.every': {
@@ -371,17 +382,12 @@ const EventsSchema = new SimpleSchema({
     type: Date,
     optional: true,
     autoValue: function () {
-      const initialEndDate = this.field('when.endingDate').value
-        ? Date.parse(this.field('when.endingDate').value) : Date.parse(getDate(3))
-      const type = this.field('when.recurring.type').value
-      const skip = this.field('when.recurring.every').value
-      const occurences = this.field('when.recurring.occurences').value
-      let millisecondsPerPeriod = 24 * 60 * 60000
-      // check type of recurrence, and that a number of repetitions has been set (rather than an "until" date)
-      if (type === 'day' && occurences >= 1) return new Date(initialEndDate + (skip * occurences * millisecondsPerPeriod))
-      else if (type === 'week' && occurences >= 1) return new Date(initialEndDate + (skip * occurences * millisecondsPerPeriod * 7))
-      else if (type === 'month' && occurences >= 1) return new Date(initialEndDate + (skip * occurences * millisecondsPerPeriod * 365.25 / 12))
-      else return null
+      return calcEffectiveEndDate(
+        this.field('when.endingDate').value,
+        this.field('when.recurring.type').value,
+        this.field('when.recurring.every').value,
+        this.field('when.recurring.occurences').value
+      )
     }
   },
   'when.recurring.until': {
@@ -418,7 +424,7 @@ const EventsSchema = new SimpleSchema({
   'engagement.limit': {
     type: Number,
     min: 0,
-    defaultValue: labels.attendee_limit,
+    defaultValue: Number(labels.attendee_limit),
     uniforms: {
       customType: 'number',
       label: 'Attendee limit (leave as is, if no limit)'

@@ -51,7 +51,7 @@ describe('<FormWizard />', () => {
     expect(emptyModel).toEqual({
       createdAt: emptyModel.createdAt,
       organiser: { _id: '-', name: '-' },
-      engagement: { limit: '1000', attendees: [] },
+      engagement: { limit: 1000, attendees: [] },
       when: {
         recurring: {
           forever: true
@@ -72,8 +72,8 @@ describe('<FormWizard />', () => {
 
     const wrapper_ = mountRenderer()
     wrapper_.setState({}) // force re-render so "this.form" is not null (ref)
-
-    const reset = wrapper_.find('.reset')
+    const reset = wrapper_.find('.reset').hostNodes()
+    // .hostNodes() keeps only the final html element (filters out React component parent with same class)
 
     expect(reset).toHaveLength(1)
     expect(wrapper_.state().reset).toBe(false)

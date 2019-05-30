@@ -30,7 +30,6 @@ describe('<Authentication />', () => {
   })
 
   it('should set isSSO, loading + a sessionStorage item in the constructor when pathname is /sso_auth', () => {
-    const spy = sinon.spy(sessionStorage, 'setItem')
     const location = {
       pathname: '/sso_auth',
       search: 'sso=abcdef&sig=ghiklmno'
@@ -39,11 +38,10 @@ describe('<Authentication />', () => {
       location
     })
 
-    expect(spy.calledOnce).toBe(true)
-    expect(spy.calledWith('_sso', JSON.stringify(qs.parse(location.search)))).toEqual(true)
+    expect(sessionStorage.setItem).toHaveBeenLastCalledWith('_sso', JSON.stringify(qs.parse(location.search)));
+    expect(sessionStorage.__STORE__['_sso']).toBe(JSON.stringify(qs.parse(location.search)));
     expect(wrapper_.state().isSSO).toEqual(true)
     expect(wrapper_.state().loading).toEqual(false)
-    spy.restore()
   })
 
   test('constructor should set loading true if sso and user is logged in', () => {

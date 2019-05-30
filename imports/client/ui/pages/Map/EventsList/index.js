@@ -67,6 +67,7 @@ class EventsList extends Component {
         <MinimizeButton />
 
         <EventInfo
+          id='event-info'
           event={events.find(event => event._id === currentEvent)}
           openMoreInfo={this.props.openMoreInfo}
           onDirections={this.props.onDirections}

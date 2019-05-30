@@ -19,7 +19,7 @@ import Linkify from 'linkifyjs/react'
 import i18n from '/imports/both/i18n/en'
 import { checkPermissions} from './../Admin/RolesPermissions/index'
 
-class Page extends Component {
+export class Page extends Component {
   constructor (props) {
     super()
     this.state = {
@@ -333,4 +333,4 @@ export default withTracker(() => {
 })(withRouter(Page))
 // 
 // Testing
-export { Page }
+// export { Page }

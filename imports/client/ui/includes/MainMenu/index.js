@@ -11,7 +11,7 @@ import Logo from "./Logo";
 import i18n from "/imports/both/i18n/en";
 import "./styles.scss";
 
-class MainMenu extends Component {
+export class MainMenu extends Component {
   state = {
     sidebarOpen: false
   };
@@ -56,7 +56,7 @@ class MainMenu extends Component {
         </Navbar>
 
         <Sidebar
-          isOpen={sidebarOpen}
+          isOpen={this.state.sidebarOpen}
           i18nFile={MainMenu}
           toggle={this.toggleSidebar}
           user={user}
@@ -71,5 +71,5 @@ class MainMenu extends Component {
 }
 
 export default withTracker(() => {
-  return { user: Meteor.user() };
-})(MainMenu);
+  return { user: Meteor.user() }
+})(MainMenu)

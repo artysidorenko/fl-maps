@@ -2,7 +2,7 @@ import { EventsSchema } from '../events'
 import possibleCategories from '/imports/both/i18n/en/categories.json'
 import { determinePosition } from '../events/helpers'
 
-describe('Events', () => {
+describe('Events schema', () => {
   // Always remember to update those tests if changing something in the schema.
 
   const validateTheWhenObject = obj => {
@@ -16,15 +16,15 @@ describe('Events', () => {
     return context.validationErrors()
   }
 
-  test('validate empty form should fail', () => {
+  it('should fail validation of an empty form', () => {
     try {
       EventsSchema.validate({})
     } catch (ex) {
       expect(ex.error).toEqual('validation-error')
     }
   })
-
-  test('validate with invalid categories value should fail', () => {
+  
+  it('should fail validation of form with one or more invalid categories', () => {
     try {
       EventsSchema.validate({
         categories: [{ name: 'unknown category', color: '#fff' }]
@@ -33,8 +33,8 @@ describe('Events', () => {
       expect(ex.details[0].type).toEqual('notAllowed')
     }
   })
-
-  test('validate with invalid location type should fail', () => {
+  
+  it('should fail validation of invalid location type', () => {
     try {
       EventsSchema.validate({
         address: {
@@ -47,8 +47,8 @@ describe('Events', () => {
       expect(ex.details[1].message).toEqual('OnlyPointAllowed is not an allowed value')
     }
   })
-
-  test('basic "when" values should validate successfully', () => {
+  
+  it('should pass validation of minimum required "when" input for non-recurring event', () => {
     const errors = validateTheWhenObject({
       startingTime: '15:00',
       endingTime: '16:00',
@@ -58,8 +58,8 @@ describe('Events', () => {
 
     expect(errors).toHaveLength(0)
   })
-
-  test('validating with "multipleDays=true" and valid "days" values should validate successfully', () => {
+  
+  it('should pass "when" input validation for multipleDays=true and valid "days" input', () => {
     const errors = validateTheWhenObject({
       multipleDays: true,
       days: [
@@ -73,8 +73,8 @@ describe('Events', () => {
 
     expect(errors).toHaveLength(0)
   })
-
-  test('validating with "multipleDays=true" and empty "days" array should fail', () => {
+  
+  it('should fail "when" input validation for multipleDays=true and empty "days" input', () => {
     const errors = validateTheWhenObject({
       multipleDays: true,
       days: [] // empty array should fail
@@ -82,8 +82,8 @@ describe('Events', () => {
 
     expect(errors[0]).toEqual({ 'name': 'when.days', 'type': 'required', 'value': [] })
   })
-
-  test('validating with "multipleDays=true" and unvalid "day" values should fail', () => {
+  
+  it('should fail "when" input validation for multipleDays=true and invalid "days" input', () => {
     const errors = validateTheWhenObject({
       multipleDays: true,
       days: [
@@ -93,8 +93,8 @@ describe('Events', () => {
 
     expect(errors).toHaveLength(3)
   })
-
-  test('validating with "multipleDays=true" and days=[undefined, { ...day }]', () => {
+  
+  it('should pass for multipleDays=true with "days" including one valid combined with undefined days', () => {
     const errors = validateTheWhenObject({
       multipleDays: true,
       days: [undefined, {
@@ -106,8 +106,8 @@ describe('Events', () => {
 
     expect(errors).toHaveLength(0)
   })
-
-  test('cleaning with "multipleDays=true" should enforce ending/starting time to be null', () => {
+  
+  it('should enforce ending/starting time to be null cleaning with multipleDays=true', () => {
     const obj = EventsSchema.clean({
       when: {
         multipleDays: true,
@@ -120,7 +120,7 @@ describe('Events', () => {
     expect(obj.when.endingTime).toEqual(null)
   })
 
-  test('basic "recurring" values should validate successfully', () => {
+  it('should pass validation of basic forever "recurring" input', () => {
     const errors = validateTheWhenObject({
       repeat: true,
       recurring: {
@@ -133,7 +133,7 @@ describe('Events', () => {
     expect(errors).toHaveLength(0)
   })
 
-  test('cleaning with "repeat=false" should enforce "when.recurring" to be null', () => {
+  it('should enforce "when.recurring" to be null when cleaning with "repeat=false"', () => {
     const obj = EventsSchema.clean({
       when: {
         repeat: false,
@@ -148,7 +148,7 @@ describe('Events', () => {
     expect(obj.when.recurring).toEqual(null)
   })
 
-  test('cleaning with "recurring.type=day" should enforce "recurring.days" and "recurring.monthly" to be null', () => {
+  it('should enforce recurring.days and recurring.monthly to null when cleaning with recurring.type=day', () => {
     const obj = EventsSchema.clean({
       when: {
         repeat: true,
@@ -164,7 +164,7 @@ describe('Events', () => {
     expect(obj.when.recurring.monthly).toEqual(null)
   })
 
-  test('validating with "recurring.type=week" and invalid "days" array should fail', () => {
+  it('should fail validating with recurring.type=week and invalid "days" array', () => {
     const errors = validateTheWhenObject({
       repeat: true,
       recurring: {
@@ -172,11 +172,10 @@ describe('Events', () => {
         days: ['InvalidDay'] // empty array should fail
       }
     })
-
-    expect(errors).toHaveLength(1)
+    expect(errors.length).toBeGreaterThan(0)
   })
 
-  test('cleaning with "recurring.type=month" should set "byDayInMonth" as a value', () => {
+  it('should set monthly.type to "byDayInMonth" when cleaning with recurring.type=month', () => {
     const obj = EventsSchema.clean({
       when: {
         repeat: true,
@@ -189,7 +188,7 @@ describe('Events', () => {
     expect(obj.when.recurring.monthly.type).toEqual('byDayInMonth')
   })
 
-  test('cleaning with "recurring.type=month" and "monthly.value=undefined" should resolve to defaults', () => {
+  it('should resolve monthly.value to its default value when type=month monthly.value=undefined', () => {
     const dayInMonth = new Date().getDate()
     const baseObj = (type) => (
       {
@@ -212,12 +211,12 @@ describe('Events', () => {
     expect(obj1.when.recurring.monthly.value).toEqual(Number(determinePosition(dayInMonth)[0]))
   })
 
-  test('cleaning with "recurring.type=month" should set limitations on "monthly.value', () => {
+  it('should set limitations on monthly.value when cleaning with recurring.type=month', () => {
     const baseObj = (monthly) => (
       {
         name: 'test',
         when: {
-          startingDate: new Date(),
+          startingDate: new Date('2019-02-01T23:00:00.000Z'),
           repeat: true,
           recurring: {
             type: 'month',
@@ -232,13 +231,13 @@ describe('Events', () => {
     const obj3 = baseObj({ type: 'byPosition', value: 10 })
     const obj4 = baseObj({ type: 'byPosition', value: 0 })
 
-    expect(EventsSchema.clean(obj1).when.recurring.monthly.value).toEqual(31)
+    expect(EventsSchema.clean(obj1).when.recurring.monthly.value).toEqual(28)
     expect(EventsSchema.clean(obj2).when.recurring.monthly.value).toEqual(1)
     expect(EventsSchema.clean(obj3).when.recurring.monthly.value).toEqual(4)
     expect(EventsSchema.clean(obj4).when.recurring.monthly.value).toEqual(1)
   })
 
-  test('cleaning with "recurring.forever=true" should enforce "recurring.repeat" to be null', () => {
+  it('should enforce recurring.repeat to be null when cleaning with recurring.forever=true', () => {
     const obj = EventsSchema.clean({
       when: {
         repeat: true,
@@ -290,6 +289,7 @@ describe('Events', () => {
         'categories.$',
         'categories.$.name',
         'categories.$.color',
+        'categories.resourceType',
         'name',
         'address',
         'address.name',
@@ -317,6 +317,7 @@ describe('Events', () => {
         'when.recurring.every',
         'when.recurring.forever',
         'when.recurring.occurences',
+        'when.recurring.recurrenceEndDate',
         'when.recurring.until',
         'overview',
         'description',
@@ -326,6 +327,16 @@ describe('Events', () => {
         'engagement.attendees.$',
         'engagement.attendees.$.id',
         'engagement.attendees.$.name',
+        'video',
+        'video.link1',
+        'video.link1.host',
+        'video.link1.address',
+        'video.link2',
+        'video.link2.host',
+        'video.link2.address',
+        'video.link3',
+        'video.link3.host',
+        'video.link3.address',
         'createdAt'
       ]
     )
